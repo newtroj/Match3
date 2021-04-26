@@ -1,22 +1,39 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using Image = UnityEngine.UI.Image;
+using Random = UnityEngine.Random;
 
 namespace GameBoard
 {
     public class InteractableObject : MonoBehaviour
     {
+        //TODO UI here?
         [SerializeField] private Image _image;
         
         private RectTransform _rectTransform;
         private DraggableObject _draggableObject;
         private GameConfigScriptableObject _config;
-
-        private int _verticalIndex;
-        private int _horizontalIndex;
+        
         private Kind _objectKind;
-
-        private int _instanceID = -1;
+        
+        //TODO Remove it and do better
+        public bool ItIsOnAMatch = false;
+        
+        public int InstanceID { get; private set; }
+        public int VerticalIndex { get; private set; }
+        public int HorizontalIndex { get; private set; }
+        public Kind ObjectKind
+        {
+            get => _objectKind;
+            private set
+            {
+                _objectKind = value;
+                EvtKindChanged?.Invoke(_objectKind);
+            }
+        }
+        
+        public event Action<Kind> EvtKindChanged;
         
         public enum Kind
         {
@@ -28,59 +45,72 @@ namespace GameBoard
 
         private void Awake()
         {
-            _instanceID = GetInstanceID();
+            InstanceID = GetInstanceID();
             _rectTransform = GetComponent<RectTransform>();
-            _draggableObject = GetComponent<DraggableObject>();
+            _draggableObject = GetComponentInChildren<DraggableObject>();
             
-            _draggableObject.EvtOnDrop += OnDropReceived;
-            _draggableObject.EvtEndDrag += OnEndDrag;
+            _draggableObject.EvtOnInteractableDroppedOnMe += OnInteractableDroppedOnMeReceived;
         }
 
         private void OnDestroy()
         {
-            _draggableObject.EvtOnDrop -= OnDropReceived;
-            _draggableObject.EvtEndDrag -= OnEndDrag;
+            _draggableObject.EvtOnInteractableDroppedOnMe -= OnInteractableDroppedOnMeReceived;
         }
 
-        public void Setup(GameConfigScriptableObject gameConfig, int verticalIndex, int horizontalIndex, int objectKind)
+        private void Update()
+        {
+            if (ItIsOnAMatch)
+            {
+                _image.color = Color.gray;
+                ItIsOnAMatch = false;
+            }
+        }
+
+        private void ResetState()
+        {
+            _image.color = Color.white;
+        }
+
+        public void Setup(GameConfigScriptableObject gameConfig, int verticalIndex, int horizontalIndex)
         {
             _config = gameConfig;
             
-            _verticalIndex = verticalIndex;
-            _horizontalIndex = horizontalIndex;
-            _objectKind = (Kind) objectKind;
-
-            UpdateName();
-            SetupKind();
+            VerticalIndex = verticalIndex;
+            HorizontalIndex = horizontalIndex;
+            
             SetPosition();
+            SetupKind();
         }
 
         private void UpdateName()
         {
-            name = $"[{_verticalIndex},{_horizontalIndex}]";
+            name = $"[{VerticalIndex}|{HorizontalIndex}] - {_objectKind.ToString()}";
         }
 
         private void SetupKind()
         {
-            _image.sprite = _config.ObjectList[(int)_objectKind];
-        }
-        
-        private void SetPosition()
-        {
-            _rectTransform.anchoredPosition = new Vector2(_horizontalIndex * _config.BlockSize, _verticalIndex * _config.BlockSize);
-            UpdateName();
-        }
-        
-        private void OnEndDrag(PointerEventData eventData)
-        {
-            SetPosition();
+            int interactableObjects = Enum.GetNames(typeof(Kind)).Length;
+            ObjectKind = (Kind) Random.Range(1, interactableObjects);
+
+            UpdateKind();
         }
 
-        private void OnDropReceived(PointerEventData eventData)
+        private void UpdateKind()
         {
-            InteractableObject draggedInteractableObject = eventData.pointerDrag.GetComponent<InteractableObject>();
+            _image.sprite = _config.ObjectList[(int) ObjectKind];
+            UpdateName();
+        }
+
+        private void SetPosition()
+        {
+            _rectTransform.anchoredPosition = new Vector2(HorizontalIndex * _config.InteractableObjectSize, VerticalIndex * _config.InteractableObjectSize);
+        }
+
+        private void OnInteractableDroppedOnMeReceived(PointerEventData eventData)
+        {
+            InteractableObject draggedInteractableObject = eventData.pointerDrag.transform.parent.GetComponent<InteractableObject>();
             
-            if(draggedInteractableObject._instanceID == _instanceID)
+            if(draggedInteractableObject.InstanceID == InstanceID)
                 return;
 
             CheckIfShouldSwapPositions(draggedInteractableObject);
@@ -88,10 +118,10 @@ namespace GameBoard
         
         private void CheckIfShouldSwapPositions(InteractableObject interactable)
         {
-            int verticalDistance = Mathf.Abs(interactable._verticalIndex - _verticalIndex);
-            int horizontalDistance = Mathf.Abs(interactable._horizontalIndex - _horizontalIndex);
+            int verticalDistance = Mathf.Abs(interactable.VerticalIndex - VerticalIndex);
+            int horizontalDistance = Mathf.Abs(interactable.HorizontalIndex - HorizontalIndex);
 
-            if (verticalDistance > 1 || horizontalDistance > 1)
+            if (verticalDistance > 1 || horizontalDistance > 1 || (verticalDistance == 1 && horizontalDistance == 1))
             {
                 OnSwapDenied(interactable);
                 return;
@@ -107,18 +137,12 @@ namespace GameBoard
         
         private void SwapObjectsPosition(InteractableObject interactableObject)
         {
-            int tempVar = -1;
-            
-            tempVar = interactableObject._verticalIndex;
-            interactableObject._verticalIndex = _verticalIndex;
-            _verticalIndex = tempVar;
-            
-            tempVar = interactableObject._horizontalIndex;
-            interactableObject._horizontalIndex = _horizontalIndex;
-            _horizontalIndex = tempVar;
-            
-            SetPosition();
-            interactableObject.SetPosition();
+            Kind tempKindVar = interactableObject.ObjectKind;
+            interactableObject.ObjectKind = ObjectKind;
+            ObjectKind = tempKindVar;
+
+            UpdateKind();
+            interactableObject.UpdateKind();
         }
     }
 }

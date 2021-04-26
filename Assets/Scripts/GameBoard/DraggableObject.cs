@@ -6,44 +6,46 @@ namespace GameBoard
 {
     public class DraggableObject : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler, IDropHandler
     {
-        private RectTransform _rectTransform;
+        [SerializeField] private RectTransform _targetDraggableRectTransform;
+        
         private CanvasGroup _canvasGroup;
 
-        public event Action<PointerEventData> EvtEndDrag;
-        public event Action<PointerEventData> EvtOnDrop;
+        public event Action<PointerEventData> EvtOnInteractableDroppedOnMe;
+        
+        //TODO maybe a better way to do it?
+        public static event Action<PointerEventData> EvtOnAnyInteractableDropped;
         
         private void Awake()
         {
-            _rectTransform = GetComponent<RectTransform>();
             _canvasGroup = GetComponent<CanvasGroup>();
         }
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            Debug.Log($"[OnDragEventStarted] name:{name} delta:{eventData.delta}, pos:{eventData.position}, pressPos:{eventData.pressPosition}");
+            Debug.Log($"[OnDragEventStarted] name:{transform.parent.name} delta:{eventData.delta}, pos:{eventData.position}, pressPos:{eventData.pressPosition}");
 
             _canvasGroup.blocksRaycasts = false;
         }
 
         public void OnDrag(PointerEventData eventData)
         {
-            _rectTransform.anchoredPosition = transform.parent.InverseTransformPoint(eventData.position);
+            _targetDraggableRectTransform.anchoredPosition = transform.parent.InverseTransformPoint(eventData.position);
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            Debug.Log($"[OnEndDrag] name:{name} delta:{eventData.delta}, pos:{eventData.position}, pressPos:{eventData.pressPosition}");
+            Debug.Log($"[OnEndDrag] name:{transform.parent.name} delta:{eventData.delta}, pos:{eventData.position}, pressPos:{eventData.pressPosition}");
             
+            _targetDraggableRectTransform.anchoredPosition = Vector2.zero;
             _canvasGroup.blocksRaycasts = true;
-            
-            EvtEndDrag?.Invoke(eventData);
         }
 
         public void OnDrop(PointerEventData eventData)
         {
-            Debug.Log($"[OnDrop] name:{name} eventData.pointerDrag:{eventData.pointerDrag.name}");
+            Debug.Log($"[OnDrop] name:{transform.parent.name} eventData.pointerDrag:{eventData.pointerDrag.name}");
             
-            EvtOnDrop?.Invoke(eventData);
+            EvtOnInteractableDroppedOnMe?.Invoke(eventData);
+            EvtOnAnyInteractableDropped?.Invoke(eventData);
         }
     }
 }
