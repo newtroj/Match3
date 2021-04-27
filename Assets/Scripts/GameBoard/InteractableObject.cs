@@ -17,7 +17,7 @@ namespace GameBoard
         
         private Kind _objectKind;
         
-        //TODO Remove it and do better
+        //TODO There is a better way to do it, but for test purpose it's ok
         public bool ItIsOnAMatch = false;
         
         public int InstanceID { get; private set; }
@@ -41,6 +41,7 @@ namespace GameBoard
             White = 1,
             Red =   2,
             Orange = 3,
+            Bread = 4,
         }
 
         private void Awake()
@@ -61,11 +62,13 @@ namespace GameBoard
         {
             if (ItIsOnAMatch)
             {
+                //TODO just for debug purpose, remove it
                 _image.color = Color.gray;
                 ItIsOnAMatch = false;
             }
         }
 
+        //TODO will reset object state when destroyed by match
         private void ResetState()
         {
             _image.color = Color.white;
@@ -89,6 +92,10 @@ namespace GameBoard
 
         private void SetupKind()
         {
+            //TODO need a better way to find a kind, it's ok for tests
+            //TODO need to check the board before start the game to avoid start with a match
+            //don't need to convert to index because Random.Range has minInclusive and maxExclusive
+            //min value is 1 because 0 is None on Kind Enum
             int interactableObjects = Enum.GetNames(typeof(Kind)).Length;
             ObjectKind = (Kind) Random.Range(1, interactableObjects);
 
@@ -97,17 +104,22 @@ namespace GameBoard
 
         private void UpdateKind()
         {
+            //TODO move UI to UI script
             _image.sprite = _config.ObjectList[(int) ObjectKind];
+            
+            //updating name here because it's better to debug the objects with the kind in the name 
             UpdateName();
         }
 
         private void SetPosition()
         {
+            //TODO use anchors properly to support different resolutions 
             _rectTransform.anchoredPosition = new Vector2(HorizontalIndex * _config.InteractableObjectSize, VerticalIndex * _config.InteractableObjectSize);
         }
 
         private void OnInteractableDroppedOnMeReceived(PointerEventData eventData)
         {
+            //TODO did this way for test purpose, check if it's ok later
             InteractableObject draggedInteractableObject = eventData.pointerDrag.transform.parent.GetComponent<InteractableObject>();
             
             if(draggedInteractableObject.InstanceID == InstanceID)
@@ -126,7 +138,8 @@ namespace GameBoard
                 OnSwapDenied(interactable);
                 return;
             }
-
+            
+            //TODO ADD OnSwapAccepted method to put an event inside probably, and put swap objects method inside
             SwapObjectsPosition(interactable);
         }
 
