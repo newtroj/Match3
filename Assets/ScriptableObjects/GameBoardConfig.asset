@@ -12,15 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8cc43ac4bb24e23835d19f1efa2f260, type: 3}
   m_Name: GameBoardConfig
   m_EditorClassIdentifier: 
-  _interactableObjectSize: 50
-  _boardWidth: 3
-  _boardHeight: 3
+  _boardWidth: 7
+  _boardHeight: 11
+  _interactableObjectSize: 64
   _minimumObjectsForAMatch: 3
   _objectList:
-  - {fileID: 21300000, guid: e81ee7a2883a26a43b4e82423d0d6775, type: 3}
+  - {fileID: 21300000, guid: f71d1f19b3b31e7458a995bdcdbaae47, type: 3}
   - {fileID: 21300000, guid: df0c7dc8b81438d4fa514e0b9f9d8855, type: 3}
   - {fileID: 21300000, guid: c635e54205e580e4c82c65b875a8ae42, type: 3}
   - {fileID: 21300000, guid: 52311f43af16ff642aa78c6e72808d49, type: 3}
   - {fileID: 21300000, guid: aa37260a1556652488b4e99dd3fd2bdd, type: 3}
   - {fileID: 21300000, guid: 50167b04089457645aaa5a67c62f981b, type: 3}
   - {fileID: 21300000, guid: 17668a619e2f683439b32e159d46b6c3, type: 3}
+  - {fileID: 21300000, guid: e81ee7a2883a26a43b4e82423d0d6775, type: 3}

@@ -1,39 +1,46 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using Image = UnityEngine.UI.Image;
 using Random = UnityEngine.Random;
 
 namespace GameBoard
 {
     public class InteractableObject : MonoBehaviour
     {
-        //TODO UI here?
-        [SerializeField] private Image _image;
-        
         private RectTransform _rectTransform;
         private DraggableObject _draggableObject;
-        private GameConfigScriptableObject _config;
-        
-        private Kind _objectKind;
+        public GameConfigScriptableObject Config  { get; private set; }
         
         //TODO There is a better way to do it, but for test purpose it's ok
         public bool ItIsOnAMatch = false;
+
+        private InteractableObject NeighborUp { get; set; }
+        private InteractableObject NeighborDown { get; set; }
+        private InteractableObject NeighborLeft { get; set; }
+        private InteractableObject NeighborRight { get; set; }
         
         public int InstanceID { get; private set; }
         public int VerticalIndex { get; private set; }
         public int HorizontalIndex { get; private set; }
+        
+        private Kind _objectKind;
         public Kind ObjectKind
         {
             get => _objectKind;
             private set
             {
                 _objectKind = value;
+                
+                //updating name here because it's better to debug the objects with the kind in the name
+                UpdateName();
+                
                 EvtKindChanged?.Invoke(_objectKind);
             }
         }
         
         public event Action<Kind> EvtKindChanged;
+        public event Action<InteractableObject> EvtSwapSuccess;
+        public event Action<InteractableObject> EvtSwapFail;
         
         public enum Kind
         {
@@ -41,7 +48,10 @@ namespace GameBoard
             White = 1,
             Red =   2,
             Orange = 3,
-            Bread = 4,
+            Yellow = 4,
+            Green = 5,
+            Brown = 6,
+            Purple = 7,
         }
 
         private void Awake()
@@ -49,40 +59,38 @@ namespace GameBoard
             InstanceID = GetInstanceID();
             _rectTransform = GetComponent<RectTransform>();
             _draggableObject = GetComponentInChildren<DraggableObject>();
-            
-            _draggableObject.EvtOnInteractableDroppedOnMe += OnInteractableDroppedOnMeReceived;
+            _draggableObject.EvtOnInteractableDroppedOnMe += OnInteractableDroppedReceived;
+            GameBoard.EvtShuffleBoardFinished += OnSetupInteractableObjectsFinished;
         }
 
         private void OnDestroy()
         {
-            _draggableObject.EvtOnInteractableDroppedOnMe -= OnInteractableDroppedOnMeReceived;
+            _draggableObject.EvtOnInteractableDroppedOnMe -= OnInteractableDroppedReceived;
+            GameBoard.EvtShuffleBoardFinished -= OnSetupInteractableObjectsFinished;
         }
 
-        private void Update()
+        public void SetupConfig(GameConfigScriptableObject gameConfig, int verticalIndex, int horizontalIndex)
         {
-            if (ItIsOnAMatch)
-            {
-                //TODO just for debug purpose, remove it
-                _image.color = Color.gray;
-                ItIsOnAMatch = false;
-            }
-        }
-
-        //TODO will reset object state when destroyed by match
-        private void ResetState()
-        {
-            _image.color = Color.white;
-        }
-
-        public void Setup(GameConfigScriptableObject gameConfig, int verticalIndex, int horizontalIndex)
-        {
-            _config = gameConfig;
+            Config = gameConfig;
             
             VerticalIndex = verticalIndex;
             HorizontalIndex = horizontalIndex;
             
             SetPosition();
-            SetupKind();
+        }
+
+        public void SetupNeighbors(InteractableObject up, InteractableObject down, InteractableObject left, InteractableObject right)
+        {
+            NeighborUp = up;
+            NeighborDown = down;
+            NeighborLeft = left;
+            NeighborRight = right;
+        }
+
+        private void OnSetupInteractableObjectsFinished()
+        {
+            while (HasAnyMatch()) 
+                SetNewKind();
         }
 
         private void UpdateName()
@@ -90,72 +98,117 @@ namespace GameBoard
             name = $"[{VerticalIndex}|{HorizontalIndex}] - {_objectKind.ToString()}";
         }
 
-        private void SetupKind()
+        public void SetNewKind()
         {
-            //TODO need a better way to find a kind, it's ok for tests
-            //TODO need to check the board before start the game to avoid start with a match
-            //don't need to convert to index because Random.Range has minInclusive and maxExclusive
-            //min value is 1 because 0 is None on Kind Enum
-            int interactableObjects = Enum.GetNames(typeof(Kind)).Length;
+            //Added +1 because Random.Range has maxExclusive param
+            int interactableObjects = Config.ObjectList.Count;
             ObjectKind = (Kind) Random.Range(1, interactableObjects);
-
-            UpdateKind();
-        }
-
-        private void UpdateKind()
-        {
-            //TODO move UI to UI script
-            _image.sprite = _config.ObjectList[(int) ObjectKind];
-            
-            //updating name here because it's better to debug the objects with the kind in the name 
-            UpdateName();
         }
 
         private void SetPosition()
         {
             //TODO use anchors properly to support different resolutions 
-            _rectTransform.anchoredPosition = new Vector2(HorizontalIndex * _config.InteractableObjectSize, VerticalIndex * _config.InteractableObjectSize);
+            _rectTransform.anchoredPosition = new Vector2(
+                Config.InteractableObjectSize*0.5f + (HorizontalIndex * Config.InteractableObjectSize),
+                -Config.InteractableObjectSize*0.5f - (VerticalIndex * Config.InteractableObjectSize));
         }
 
-        private void OnInteractableDroppedOnMeReceived(PointerEventData eventData)
+        private void OnInteractableDroppedReceived(PointerEventData eventData)
         {
-            //TODO did this way for test purpose, check if it's ok later
             InteractableObject draggedInteractableObject = eventData.pointerDrag.transform.parent.GetComponent<InteractableObject>();
             
             if(draggedInteractableObject.InstanceID == InstanceID)
                 return;
 
-            CheckIfShouldSwapPositions(draggedInteractableObject);
+            if (CanSwap(draggedInteractableObject))
+            {
+                OnSwapAccepted(draggedInteractableObject);
+                return;
+            }
+            
+            OnSwapDenied(draggedInteractableObject);
         }
         
-        private void CheckIfShouldSwapPositions(InteractableObject interactable)
+        private bool CanSwap(InteractableObject interactable)
         {
             int verticalDistance = Mathf.Abs(interactable.VerticalIndex - VerticalIndex);
             int horizontalDistance = Mathf.Abs(interactable.HorizontalIndex - HorizontalIndex);
 
-            if (verticalDistance > 1 || horizontalDistance > 1 || (verticalDistance == 1 && horizontalDistance == 1))
-            {
-                OnSwapDenied(interactable);
-                return;
-            }
+            //Swap for now, just to test if it will be a match
+            DoSwap(interactable);
+            bool hasAnyMatchAfterSwap = HasAnyMatch() || interactable.HasAnyMatch();
             
-            //TODO ADD OnSwapAccepted method to put an event inside probably, and put swap objects method inside
-            SwapObjectsPosition(interactable);
+            //swap back
+            DoSwap(interactable);
+            
+            return verticalDistance <= 1 && horizontalDistance <= 1 && verticalDistance != horizontalDistance && hasAnyMatchAfterSwap;
         }
 
         private void OnSwapDenied(InteractableObject interactableObject)
         {
-            //TODO feedback event
+            EvtSwapFail?.Invoke(interactableObject);
         }
         
-        private void SwapObjectsPosition(InteractableObject interactableObject)
+        private void OnSwapAccepted(InteractableObject interactableObject)
+        {
+            DoSwap(interactableObject);
+            EvtSwapSuccess?.Invoke(interactableObject);
+        }
+
+        private void DoSwap(InteractableObject interactableObject)
         {
             Kind tempKindVar = interactableObject.ObjectKind;
             interactableObject.ObjectKind = ObjectKind;
             ObjectKind = tempKindVar;
+        }
 
-            UpdateKind();
-            interactableObject.UpdateKind();
+        public bool HasAnyPossibleMatch()
+        {
+            return HasVerticalPossibleMatch() || HasHorizontalPossibleMatch();
+        }
+
+        public bool HasVerticalPossibleMatch()
+        {
+            bool possibleMatchUp = NeighborDown && NeighborDown.NeighborDown && ItIsAMatch(ObjectKind, NeighborUp, NeighborDown.NeighborDown);//xXox
+            bool possibleMatchDown = NeighborUp && NeighborUp.NeighborUp && ItIsAMatch(ObjectKind, NeighborUp.NeighborUp, NeighborDown);//xoXx
+
+            return possibleMatchUp || possibleMatchDown;
+        }
+
+        public bool HasHorizontalPossibleMatch()
+        {
+            bool possibleMatchLeft = NeighborLeft && NeighborLeft.NeighborLeft && ItIsAMatch(ObjectKind, NeighborRight, NeighborLeft);//xoXx
+            bool possibleMatchRight = NeighborLeft && NeighborLeft.NeighborLeft && ItIsAMatch(ObjectKind, NeighborLeft, NeighborLeft);//xXox
+            
+            return possibleMatchLeft || possibleMatchRight;
+        }
+        
+        public bool HasAnyMatch()
+        {
+            return HasVerticalMatch() || HasHorizontalMatch();
+        }
+
+        public bool HasVerticalMatch()
+        {
+            bool hasMatchMiddle = ItIsAMatch(ObjectKind, NeighborUp, NeighborDown);//xXx
+            bool hasMatchUp = NeighborUp && ItIsAMatch(ObjectKind, NeighborUp, NeighborUp.NeighborUp);//xxX
+            bool hasMatchDown = NeighborDown && ItIsAMatch(ObjectKind, NeighborDown, NeighborDown.NeighborDown);//Xxx
+
+            return hasMatchUp || hasMatchMiddle || hasMatchDown;
+        }
+
+        public bool HasHorizontalMatch()
+        {
+            bool hasMatchMiddle = ItIsAMatch(ObjectKind, NeighborRight, NeighborLeft);//xXx
+            bool hasMatchLeft = NeighborLeft && ItIsAMatch(ObjectKind, NeighborLeft, NeighborLeft.NeighborLeft);//xxX
+            bool hasMatchRight = NeighborRight && ItIsAMatch(ObjectKind, NeighborRight, NeighborRight.NeighborRight);//Xxx
+            
+            return hasMatchLeft || hasMatchMiddle || hasMatchRight;
+        }
+        
+        private bool ItIsAMatch(Kind objKind1, InteractableObject obj1, InteractableObject obj2)
+        {
+            return obj1 && obj2 && objKind1 == obj1.ObjectKind && objKind1 == obj2.ObjectKind;
         }
     }
 }
