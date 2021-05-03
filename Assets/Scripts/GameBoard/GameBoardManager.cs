@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
+using Round;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace GameBoard
 {
-    public class GameBoard : MonoBehaviour
+    public class GameBoardManager : MonoBehaviour
     {
         [SerializeField] private Transform _interactableObjectsParent;
         [SerializeField] private GameObject _interactableObjectPrefab;
-
-        //TODO should I have another configuration scriptable for context purpose?
         [SerializeField] private GameConfigScriptableObject _gameConfig;
         
         private InteractableObject[,] _interactableObjects;
@@ -21,15 +20,19 @@ namespace GameBoard
         private bool MatchFound => _matchHunterAux.Count >= _gameConfig.MinimumObjectsForAMatch;
 
         public static event Action EvtShuffleBoardFinished; 
+        public static event Action<int> EvtObjectsMatchFound; 
         
         void Start()
         {
             SetupBoard();
+            
+            RoundManager.EvtRoundStarted += InitializeGameBoard;
             DraggableObject.EvtOnAnyInteractableDropped += OnAnyInteractableDropped;
         }
 
         private void OnDestroy()
         {
+            RoundManager.EvtRoundStarted -= InitializeGameBoard;
             DraggableObject.EvtOnAnyInteractableDropped -= OnAnyInteractableDropped;
         }
 
@@ -37,12 +40,14 @@ namespace GameBoard
         {
             InstantiateBoard();
             SetupBoardNeighbors();
-            
+        }
+
+        private void InitializeGameBoard()
+        {
             do
             {
                 ShuffleBoard();
-            }
-            while (!HasAnyPossibleMatch());
+            } while (!HasAnyPossibleMatch());
         }
 
         private void InstantiateBoard()
@@ -84,7 +89,7 @@ namespace GameBoard
             {
                 for (int horizontalIndex = 0; horizontalIndex < _gameConfig.BoardWidth; horizontalIndex++)
                 {
-                    _interactableObjects[verticalIndex, horizontalIndex].SetNewKind();
+                    _interactableObjects[verticalIndex, horizontalIndex].SetupStartingKind();
                 }
             }
             
@@ -194,8 +199,10 @@ namespace GameBoard
             for (int i = 0; i < stackCount; i++)
             {
                 InteractableObject interactableObject = _matchHunterAux.Pop();
-                interactableObject.ItIsOnAMatch = true;
+                // interactableObject.ItIsOnAMatch = true;
             }
+            
+            EvtObjectsMatchFound?.Invoke(stackCount);
         }
     }
 }

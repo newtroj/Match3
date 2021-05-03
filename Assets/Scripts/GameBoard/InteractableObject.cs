@@ -11,9 +11,6 @@ namespace GameBoard
         private DraggableObject _draggableObject;
         public GameConfigScriptableObject Config  { get; private set; }
         
-        //TODO There is a better way to do it, but for test purpose it's ok
-        public bool ItIsOnAMatch = false;
-
         private InteractableObject NeighborUp { get; set; }
         private InteractableObject NeighborDown { get; set; }
         private InteractableObject NeighborLeft { get; set; }
@@ -41,6 +38,8 @@ namespace GameBoard
         public event Action<Kind> EvtKindChanged;
         public event Action<InteractableObject> EvtSwapSuccess;
         public event Action<InteractableObject> EvtSwapFail;
+        public event Action<InteractableObject> EvtGetKindFrom;
+        public event Action<Action> EvtMatchFound;
         
         public enum Kind
         {
@@ -60,13 +59,13 @@ namespace GameBoard
             _rectTransform = GetComponent<RectTransform>();
             _draggableObject = GetComponentInChildren<DraggableObject>();
             _draggableObject.EvtOnInteractableDroppedOnMe += OnInteractableDroppedReceived;
-            GameBoard.EvtShuffleBoardFinished += OnSetupInteractableObjectsFinished;
+            GameBoardManager.EvtShuffleBoardFinished += OnSetupInteractableObjectsFinished;
         }
 
         private void OnDestroy()
         {
             _draggableObject.EvtOnInteractableDroppedOnMe -= OnInteractableDroppedReceived;
-            GameBoard.EvtShuffleBoardFinished -= OnSetupInteractableObjectsFinished;
+            GameBoardManager.EvtShuffleBoardFinished -= OnSetupInteractableObjectsFinished;
         }
 
         public void SetupConfig(GameConfigScriptableObject gameConfig, int verticalIndex, int horizontalIndex)
@@ -90,7 +89,7 @@ namespace GameBoard
         private void OnSetupInteractableObjectsFinished()
         {
             while (HasAnyMatch()) 
-                SetNewKind();
+                SetupStartingKind();
         }
 
         private void UpdateName()
@@ -98,11 +97,16 @@ namespace GameBoard
             name = $"[{VerticalIndex}|{HorizontalIndex}] - {_objectKind.ToString()}";
         }
 
-        public void SetNewKind()
+        public Kind GetNewKind()
         {
             //Added +1 because Random.Range has maxExclusive param
             int interactableObjects = Config.ObjectList.Count;
-            ObjectKind = (Kind) Random.Range(1, interactableObjects);
+            return (Kind) Random.Range(1, interactableObjects);
+        }
+        
+        public void SetupStartingKind()
+        {
+            ObjectKind = GetNewKind();
         }
 
         private void SetPosition()
@@ -209,6 +213,36 @@ namespace GameBoard
         private bool ItIsAMatch(Kind objKind1, InteractableObject obj1, InteractableObject obj2)
         {
             return obj1 && obj2 && objKind1 == obj1.ObjectKind && objKind1 == obj2.ObjectKind;
+        }
+
+        private void OnMatchFound()
+        {
+            EvtMatchFound?.Invoke(GetNextValidInteractableKind);
+        }
+        
+        private void GetNextValidInteractableKind()
+        {
+            InteractableObject target = NeighborUp;
+
+            while (target)
+            {
+                if (target.ObjectKind != Kind.None) 
+                    break;
+
+                target = target.NeighborUp;
+            }
+
+            GetKindFrom(target);
+        }
+
+        private void GetKindFrom(InteractableObject target)
+        {
+            if (target)
+                DoSwap(target);
+            else
+                SetupStartingKind(); //TODO for now
+
+            EvtGetKindFrom?.Invoke(target);
         }
     }
 }
