@@ -13,6 +13,9 @@ namespace GameBoard
 
         private InteractableObjectAnimation _interactableObjectAnimation;
         
+        //TODO fix it
+        public bool _matchFound = false;
+        
         private InteractableObject NeighborUp { get; set; }
         private InteractableObject NeighborDown { get; set; }
         private InteractableObject NeighborLeft { get; set; }
@@ -29,6 +32,7 @@ namespace GameBoard
             private set
             {
                 _objectKind = value;
+                _matchFound = false;
                 
                 //updating name here because it's better to debug the objects with the kind in the name
                 UpdateName();
@@ -223,9 +227,7 @@ namespace GameBoard
         {
             return obj1 && obj2 && objKind1 == obj1.ObjectKind && objKind1 == obj2.ObjectKind;
         }
-
-        //TODO fix it
-        public bool _matchFound = false;
+        
         public void FlagMatchFound()
         {
             _matchFound = true;

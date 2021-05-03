@@ -246,8 +246,6 @@ namespace GameBoard
         private void FlagMatchFound()
         {
             int stackCount = _matchHunterAux.Count;
-            
-            Debug.LogError($"MatchFound for {stackCount} Objects");
             for (int i = 0; i < stackCount; i++)
             {
                 InteractableObject interactableObject = _matchHunterAux.Pop();

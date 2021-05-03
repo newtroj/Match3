@@ -16,8 +16,9 @@ MonoBehaviour:
   _boardHeight: 11
   _interactableObjectSize: 64
   _minimumObjectsForAMatch: 3
-  _roundTime: 15
+  _roundTime: 120
   _pointsPerObject: 5
+  _pointGoals: 64000000fa000000f4010000ee020000e8030000
   _objectList:
   - {fileID: 21300000, guid: f71d1f19b3b31e7458a995bdcdbaae47, type: 3}
   - {fileID: 21300000, guid: df0c7dc8b81438d4fa514e0b9f9d8855, type: 3}
