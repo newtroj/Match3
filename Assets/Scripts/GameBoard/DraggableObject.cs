@@ -10,10 +10,8 @@ namespace GameBoard
         
         private CanvasGroup _canvasGroup;
 
-        public event Action<PointerEventData> EvtOnInteractableDroppedOnMe;
-        
-        //TODO maybe a better way to do it?
-        public static event Action<PointerEventData> EvtOnAnyInteractableDropped;
+        public event Action<PointerEventData> EvtOnInteractableDroppedOnMe; //InteractableObject dropped just on me
+        public static event Action<PointerEventData> EvtOnAnyInteractableDropped; //for interactableObjects dropped on ANY interactableObject
         
         private void Awake()
         {

@@ -40,8 +40,9 @@ namespace GameBoard
         public event Action<Kind> EvtKindChanged;
         public event Action<InteractableObject> EvtSwapSuccess;
         public event Action<InteractableObject> EvtSwapFail;
-        public event Action<InteractableObject> EvtGetKindFrom;
+        public event Action<InteractableObject> EvtNextKindFound;
         public event Action EvtMatchFound;
+        public static event Action EvtLastInteractableKindFoundForThisColumn;
         
         public enum Kind
         {
@@ -66,14 +67,14 @@ namespace GameBoard
             _interactableObjectAnimation = GetComponent<InteractableObjectAnimation>();
             _interactableObjectAnimation.EvtMatchAnimationFinished += OnMatchAnimationFinished;
             
-            GameBoardManager.EvtShuffleBoardFinished += OnSetupInteractableObjectsFinished;
+            GameBoardManager.EvtBoardShuffled += OnSetupInteractableObjectsShuffled;
         }
 
         private void OnDestroy()
         {
             _interactableObjectAnimation.EvtMatchAnimationFinished -= OnMatchAnimationFinished;
             _draggableObject.EvtOnInteractableDroppedOnMe -= OnInteractableDroppedReceived;
-            GameBoardManager.EvtShuffleBoardFinished -= OnSetupInteractableObjectsFinished;
+            GameBoardManager.EvtBoardShuffled -= OnSetupInteractableObjectsShuffled;
         }
 
         public void SetupConfig(GameConfigScriptableObject gameConfig, int verticalIndex, int horizontalIndex)
@@ -94,10 +95,10 @@ namespace GameBoard
             NeighborRight = right;
         }
 
-        private void OnSetupInteractableObjectsFinished()
+        private void OnSetupInteractableObjectsShuffled()
         {
             while (HasAnyMatch()) 
-                SetupStartingKind();
+                SetupNewKind();
         }
 
         private void UpdateName()
@@ -112,7 +113,7 @@ namespace GameBoard
             return (Kind) Random.Range(1, interactableObjects);
         }
         
-        public void SetupStartingKind()
+        public void SetupNewKind()
         {
             ObjectKind = GetNewKind();
         }
@@ -223,6 +224,7 @@ namespace GameBoard
             return obj1 && obj2 && objKind1 == obj1.ObjectKind && objKind1 == obj2.ObjectKind;
         }
 
+        //TODO fix it
         public bool _matchFound = false;
         public void FlagMatchFound()
         {
@@ -253,20 +255,25 @@ namespace GameBoard
                 target = target.NeighborUp;
             }
 
-            GetKindFrom(target);
+            OnNextInteractableKindFound(target);
             
             if(target)
                 target.GetNextValidInteractableKind();
+            else
+            {
+                //When target is null we have reached the last InteractableObject of this column
+                EvtLastInteractableKindFoundForThisColumn?.Invoke();
+            }
         }
 
-        private void GetKindFrom(InteractableObject target)
+        private void OnNextInteractableKindFound(InteractableObject target)
         {
             if (target)
                 DoSwap(target);
             else
-                SetupStartingKind();
+                SetupNewKind();
 
-            EvtGetKindFrom?.Invoke(target);
+            EvtNextKindFound?.Invoke(target);
         }
     }
 }
