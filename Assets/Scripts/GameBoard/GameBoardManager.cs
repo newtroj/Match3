@@ -20,7 +20,7 @@ namespace GameBoard
         private bool MatchFound => _matchHunterAux.Count >= _gameConfig.MinimumObjectsForAMatch;
 
         public static event Action EvtShuffleBoardFinished; 
-        public static event Action<int> EvtObjectsMatchFound; 
+        public static event Action EvInteractableObjectMatchFound; 
         
         void Start()
         {
@@ -38,8 +38,9 @@ namespace GameBoard
 
         private void SetupBoard()
         {
-            InstantiateBoard();
-            SetupBoardNeighbors();
+            _interactableObjects = new InteractableObject[_gameConfig.BoardHeight, _gameConfig.BoardWidth];
+            DoActionOnAllInteractableObjects(InstantiateBoard);
+            DoActionOnAllInteractableObjects(SetupBoardNeighbors);
         }
 
         private void InitializeGameBoard()
@@ -50,37 +51,23 @@ namespace GameBoard
             } while (!HasAnyPossibleMatch());
         }
 
-        private void InstantiateBoard()
+        private void InstantiateBoard(int verticalIndex, int horizontalIndex)
         {
-            _interactableObjects = new InteractableObject[_gameConfig.BoardHeight, _gameConfig.BoardWidth];
-
-            for (int verticalIndex = 0; verticalIndex < _gameConfig.BoardHeight; verticalIndex++)
-            {
-                for (int horizontalIndex = 0; horizontalIndex < _gameConfig.BoardWidth; horizontalIndex++)
-                {
-                    GameObject itemInstance = Instantiate(_interactableObjectPrefab, _interactableObjectsParent);
-                    InteractableObject interactableObject = itemInstance.GetComponent<InteractableObject>();
-                    interactableObject.SetupConfig(_gameConfig, verticalIndex, horizontalIndex);
-                    
-                    _interactableObjects[verticalIndex, horizontalIndex] = interactableObject;
-                }
-            }
+            GameObject itemInstance = Instantiate(_interactableObjectPrefab, _interactableObjectsParent);
+            InteractableObject interactableObject = itemInstance.GetComponent<InteractableObject>();
+            interactableObject.SetupConfig(_gameConfig, verticalIndex, horizontalIndex);
+            
+            _interactableObjects[verticalIndex, horizontalIndex] = interactableObject;
         }
         
-        private void SetupBoardNeighbors()
+        private void SetupBoardNeighbors(int verticalIndex, int horizontalIndex)
         {
-            for (int verticalIndex = 0; verticalIndex < _gameConfig.BoardHeight; verticalIndex++)
-            {
-                for (int horizontalIndex = 0; horizontalIndex < _gameConfig.BoardWidth; horizontalIndex++)
-                {
-                    InteractableObject neighborUp =     GetInteractableObjectInstance(verticalIndex - 1, horizontalIndex);
-                    InteractableObject neighborDown =   GetInteractableObjectInstance(verticalIndex + 1, horizontalIndex);
-                    InteractableObject neighborLeft =   GetInteractableObjectInstance(verticalIndex, horizontalIndex - 1);
-                    InteractableObject neighborRight =  GetInteractableObjectInstance(verticalIndex, horizontalIndex + 1);
+            InteractableObject neighborUp =     GetInteractableObjectInstance(verticalIndex - 1, horizontalIndex);
+            InteractableObject neighborDown =   GetInteractableObjectInstance(verticalIndex + 1, horizontalIndex);
+            InteractableObject neighborLeft =   GetInteractableObjectInstance(verticalIndex, horizontalIndex - 1);
+            InteractableObject neighborRight =  GetInteractableObjectInstance(verticalIndex, horizontalIndex + 1);
 
-                    _interactableObjects[verticalIndex, horizontalIndex].SetupNeighbors(neighborUp, neighborDown, neighborLeft, neighborRight);
-                }
-            }
+            _interactableObjects[verticalIndex, horizontalIndex].SetupNeighbors(neighborUp, neighborDown, neighborLeft, neighborRight);
         }
         
         private void ShuffleBoard()
@@ -127,12 +114,20 @@ namespace GameBoard
 
         private void OnAnyInteractableDropped(PointerEventData eventData)
         {
-            IsThereAMatch();
+            ProcessingMatch();
+        }
 
-            while (!HasAnyPossibleMatch()) 
+        private void ProcessingMatch()
+        {
+            if (!IsThereAMatch())
+                return;
+
+            DoObjectsMatchResult();
+
+            while (!HasAnyPossibleMatch())
                 ShuffleBoard();
         }
-        
+
         private bool IsThereAMatch()
         {
             bool matchFound = false;
@@ -145,7 +140,7 @@ namespace GameBoard
                 for (int horizontalIndex = 0; horizontalIndex < _gameConfig.BoardWidth; horizontalIndex++)
                 {
                     InteractableObject interactable = _interactableObjects[verticalIndex, horizontalIndex];
-                    UpdateMatchHunter(interactable, lastKind);
+                    matchFound |= UpdateMatchHunter(interactable, lastKind);
                     lastKind = interactable.ObjectKind;
                 }
 
@@ -160,7 +155,7 @@ namespace GameBoard
                 for (int verticalIndex = 0; verticalIndex < _gameConfig.BoardHeight; verticalIndex++)
                 {
                     InteractableObject interactable = _interactableObjects[verticalIndex, horizontalIndex];
-                    UpdateMatchHunter(interactable, lastKind);
+                    matchFound |= UpdateMatchHunter(interactable, lastKind);
                     lastKind = interactable.ObjectKind;
                 }
                 
@@ -174,7 +169,7 @@ namespace GameBoard
         {
             if (MatchFound)
             {
-                OnObjectsMatchFound();
+                FlagMatchFound();
                 return true;
             }
 
@@ -182,15 +177,15 @@ namespace GameBoard
             return false;
         }
 
-        private void UpdateMatchHunter(InteractableObject interactable, InteractableObject.Kind lastKind)
+        private bool UpdateMatchHunter(InteractableObject interactable, InteractableObject.Kind lastKind)
         {
             InteractableObject.Kind currentKind = interactable.ObjectKind;
 
-            if (currentKind == lastKind || lastKind == InteractableObject.Kind.None)
+            if (currentKind != InteractableObject.Kind.None && (currentKind == lastKind || lastKind == InteractableObject.Kind.None))
             {
                 //the hunt goes on
                 _matchHunterAux.Push(interactable);
-                return;
+                return false;
             }
 
             //we have come to an end
@@ -198,18 +193,48 @@ namespace GameBoard
             
             //Start a new hunt
             _matchHunterAux.Push(interactable);
+
+            return true;
         }
 
-        private void OnObjectsMatchFound()
+        private void FlagMatchFound()
         {
             int stackCount = _matchHunterAux.Count;
+            
+            Debug.LogError($"MatchFound for {stackCount} Objects");
             for (int i = 0; i < stackCount; i++)
             {
                 InteractableObject interactableObject = _matchHunterAux.Pop();
-                interactableObject.OnMatchFound();
+                Debug.Log($"FlagMatchFound:{interactableObject.name}");
+                interactableObject.FlagMatchFound();
             }
+        }
+        
+        private void DoObjectsMatchResult()
+        {
+            DoActionOnAllInteractableObjects(OnInteractableObjectsMatchFound);
+        }
+
+        private void OnInteractableObjectsMatchFound(int verticalIndex, int horizontalIndex)
+        {
+            InteractableObject interactableObject = _interactableObjects[verticalIndex, horizontalIndex];
+            if(!interactableObject._matchFound)
+                return;
             
-            EvtObjectsMatchFound?.Invoke(stackCount);
+            interactableObject.OnMatchFound();
+            
+            EvInteractableObjectMatchFound?.Invoke();
+        }
+
+        private void DoActionOnAllInteractableObjects(Action<int, int> action)
+        {
+            for (int verticalIndex = 0; verticalIndex < _gameConfig.BoardHeight; verticalIndex++)
+            {
+                for (int horizontalIndex = 0; horizontalIndex < _gameConfig.BoardWidth; horizontalIndex++)
+                {
+                    action(verticalIndex, horizontalIndex);
+                }
+            }
         }
     }
 }

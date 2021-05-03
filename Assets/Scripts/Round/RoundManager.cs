@@ -18,12 +18,12 @@ namespace Round
 
         private void Awake()
         {
-            GameBoardManager.EvtObjectsMatchFound += EvtObjectsOnMatchFound;
+            GameBoardManager.EvInteractableObjectMatchFound += EvOnInteractableObjectMatchFound;
         }
 
         private void OnDestroy()
         {
-            GameBoardManager.EvtObjectsMatchFound -= EvtObjectsOnMatchFound;
+            GameBoardManager.EvInteractableObjectMatchFound -= EvOnInteractableObjectMatchFound;
         }
 
         private void Update()
@@ -61,9 +61,9 @@ namespace Round
             return (int) (_config.RoundTime - GetRoundElapsedTime());
         }
         
-        private void EvtObjectsOnMatchFound(int objectsCount)
+        private void EvOnInteractableObjectMatchFound()
         {
-            MatchPoints += _config.PointsPerObject * objectsCount;
+            MatchPoints += _config.PointsPerObject;
         }
     }
 }

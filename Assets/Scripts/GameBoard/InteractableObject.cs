@@ -223,8 +223,15 @@ namespace GameBoard
             return obj1 && obj2 && objKind1 == obj1.ObjectKind && objKind1 == obj2.ObjectKind;
         }
 
+        public bool _matchFound = false;
+        public void FlagMatchFound()
+        {
+            _matchFound = true;
+        }
+        
         public void OnMatchFound()
         {
+            _matchFound = false;
             ObjectKind = Kind.None;
             EvtMatchFound?.Invoke();
         }
