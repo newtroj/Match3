@@ -73,8 +73,8 @@ namespace GameBoard
             {
                 for (int horizontalIndex = 0; horizontalIndex < _gameConfig.BoardWidth; horizontalIndex++)
                 {
-                    InteractableObject neighborUp =     GetInteractableObjectInstance(verticalIndex + 1, horizontalIndex);
-                    InteractableObject neighborDown =   GetInteractableObjectInstance(verticalIndex - 1, horizontalIndex);
+                    InteractableObject neighborUp =     GetInteractableObjectInstance(verticalIndex - 1, horizontalIndex);
+                    InteractableObject neighborDown =   GetInteractableObjectInstance(verticalIndex + 1, horizontalIndex);
                     InteractableObject neighborLeft =   GetInteractableObjectInstance(verticalIndex, horizontalIndex - 1);
                     InteractableObject neighborRight =  GetInteractableObjectInstance(verticalIndex, horizontalIndex + 1);
 
@@ -127,15 +127,16 @@ namespace GameBoard
 
         private void OnAnyInteractableDropped(PointerEventData eventData)
         {
-            CheckForAMatch();
+            IsThereAMatch();
 
             while (!HasAnyPossibleMatch()) 
                 ShuffleBoard();
         }
         
-        //TODO duplicated code! do it better! and don't sleep on the keyboard!
-        private void CheckForAMatch()
+        private bool IsThereAMatch()
         {
+            bool matchFound = false;
+            
             //Searching for a match on lines
             for (int verticalIndex = 0; verticalIndex < _gameConfig.BoardHeight; verticalIndex++)
             {
@@ -148,7 +149,7 @@ namespace GameBoard
                     lastKind = interactable.ObjectKind;
                 }
 
-                CheckMatchFoundAndClear();
+                matchFound |= CheckMatchFoundAndClear();
             }
 
             //searching for a match on columns
@@ -163,16 +164,22 @@ namespace GameBoard
                     lastKind = interactable.ObjectKind;
                 }
                 
-                CheckMatchFoundAndClear();
+                matchFound |= CheckMatchFoundAndClear();
             }
+
+            return matchFound;
         }
 
-        private void CheckMatchFoundAndClear()
+        private bool CheckMatchFoundAndClear()
         {
             if (MatchFound)
-                FlagInteractableObjectsAsAMatch();
-            else
-                _matchHunterAux.Clear();
+            {
+                OnObjectsMatchFound();
+                return true;
+            }
+
+            _matchHunterAux.Clear();
+            return false;
         }
 
         private void UpdateMatchHunter(InteractableObject interactable, InteractableObject.Kind lastKind)
@@ -193,13 +200,13 @@ namespace GameBoard
             _matchHunterAux.Push(interactable);
         }
 
-        private void FlagInteractableObjectsAsAMatch()
+        private void OnObjectsMatchFound()
         {
             int stackCount = _matchHunterAux.Count;
             for (int i = 0; i < stackCount; i++)
             {
                 InteractableObject interactableObject = _matchHunterAux.Pop();
-                // interactableObject.ItIsOnAMatch = true;
+                interactableObject.OnMatchFound();
             }
             
             EvtObjectsMatchFound?.Invoke(stackCount);

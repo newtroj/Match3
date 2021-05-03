@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using Utils;
 
 namespace GameBoard
 {
@@ -7,10 +8,14 @@ namespace GameBoard
     {
         [SerializeField] private Image _image;
 
+        private CanvasGroup _imageCanvasGroup;
+        
         private InteractableObject _myInteractableObject;
         
         private void Awake()
         {
+            _imageCanvasGroup = _image.GetComponent<CanvasGroup>();
+            
             _myInteractableObject = GetComponent<InteractableObject>();
             _myInteractableObject.EvtKindChanged += OnKindUpdated;
             _myInteractableObject.EvtSwapSuccess += OnSwapSuccess;

@@ -10,6 +10,8 @@ namespace GameBoard
         private RectTransform _rectTransform;
         private DraggableObject _draggableObject;
         public GameConfigScriptableObject Config  { get; private set; }
+
+        private InteractableObjectAnimation _interactableObjectAnimation;
         
         private InteractableObject NeighborUp { get; set; }
         private InteractableObject NeighborDown { get; set; }
@@ -39,7 +41,7 @@ namespace GameBoard
         public event Action<InteractableObject> EvtSwapSuccess;
         public event Action<InteractableObject> EvtSwapFail;
         public event Action<InteractableObject> EvtGetKindFrom;
-        public event Action<Action> EvtMatchFound;
+        public event Action EvtMatchFound;
         
         public enum Kind
         {
@@ -57,13 +59,19 @@ namespace GameBoard
         {
             InstanceID = GetInstanceID();
             _rectTransform = GetComponent<RectTransform>();
+            
             _draggableObject = GetComponentInChildren<DraggableObject>();
             _draggableObject.EvtOnInteractableDroppedOnMe += OnInteractableDroppedReceived;
+
+            _interactableObjectAnimation = GetComponent<InteractableObjectAnimation>();
+            _interactableObjectAnimation.EvtMatchAnimationFinished += OnMatchAnimationFinished;
+            
             GameBoardManager.EvtShuffleBoardFinished += OnSetupInteractableObjectsFinished;
         }
 
         private void OnDestroy()
         {
+            _interactableObjectAnimation.EvtMatchAnimationFinished -= OnMatchAnimationFinished;
             _draggableObject.EvtOnInteractableDroppedOnMe -= OnInteractableDroppedReceived;
             GameBoardManager.EvtShuffleBoardFinished -= OnSetupInteractableObjectsFinished;
         }
@@ -215,9 +223,15 @@ namespace GameBoard
             return obj1 && obj2 && objKind1 == obj1.ObjectKind && objKind1 == obj2.ObjectKind;
         }
 
-        private void OnMatchFound()
+        public void OnMatchFound()
         {
-            EvtMatchFound?.Invoke(GetNextValidInteractableKind);
+            ObjectKind = Kind.None;
+            EvtMatchFound?.Invoke();
+        }
+        
+        private void OnMatchAnimationFinished()
+        {
+            GetNextValidInteractableKind();
         }
         
         private void GetNextValidInteractableKind()
@@ -233,6 +247,9 @@ namespace GameBoard
             }
 
             GetKindFrom(target);
+            
+            if(target)
+                target.GetNextValidInteractableKind();
         }
 
         private void GetKindFrom(InteractableObject target)
@@ -240,7 +257,7 @@ namespace GameBoard
             if (target)
                 DoSwap(target);
             else
-                SetupStartingKind(); //TODO for now
+                SetupStartingKind();
 
             EvtGetKindFrom?.Invoke(target);
         }
