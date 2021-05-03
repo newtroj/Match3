@@ -11,7 +11,7 @@ namespace GameBoard
         private DraggableObject _draggableObject;
         public GameConfigScriptableObject Config  { get; private set; }
 
-        private InteractableObjectAnimation _interactableObjectAnimation;
+        private InteractableObjectUIAnimation _interactableObjectUIAnimation;
         
         //TODO fix it
         public bool _matchFound = false;
@@ -68,15 +68,15 @@ namespace GameBoard
             _draggableObject = GetComponentInChildren<DraggableObject>();
             _draggableObject.EvtOnInteractableDroppedOnMe += OnInteractableDroppedReceived;
 
-            _interactableObjectAnimation = GetComponent<InteractableObjectAnimation>();
-            _interactableObjectAnimation.EvtMatchAnimationFinished += OnMatchAnimationFinished;
+            _interactableObjectUIAnimation = GetComponent<InteractableObjectUIAnimation>();
+            _interactableObjectUIAnimation.EvtMatchAnimationFinished += OnMatchUIAnimationFinished;
             
             GameBoardManager.EvtBoardShuffled += OnSetupInteractableObjectsShuffled;
         }
 
         private void OnDestroy()
         {
-            _interactableObjectAnimation.EvtMatchAnimationFinished -= OnMatchAnimationFinished;
+            _interactableObjectUIAnimation.EvtMatchAnimationFinished -= OnMatchUIAnimationFinished;
             _draggableObject.EvtOnInteractableDroppedOnMe -= OnInteractableDroppedReceived;
             GameBoardManager.EvtBoardShuffled -= OnSetupInteractableObjectsShuffled;
         }
@@ -240,7 +240,7 @@ namespace GameBoard
             EvtMatchFound?.Invoke();
         }
         
-        private void OnMatchAnimationFinished()
+        private void OnMatchUIAnimationFinished()
         {
             GetNextValidInteractableKind();
         }

@@ -2,13 +2,15 @@
 using DG.Tweening;
 using Round;
 using UnityEngine;
+using UnityEngine.UI;
 using Utils;
 
 namespace GameBoard
 {
-    public class InteractableObjectAnimation : MonoBehaviour
+    public class InteractableObjectUIAnimation : MonoBehaviour
     {
         [SerializeField] private RectTransform _targetRectTransform;
+        [SerializeField] private Image _image;
         
         private Tweener _currentHideTween;
         private CanvasGroup _targetCanvasGroup;
@@ -25,6 +27,7 @@ namespace GameBoard
             
             _myInteractableObject = GetComponent<InteractableObject>();
             _myInteractableObject.EvtMatchFound += EvtOnMatchFound;
+            _myInteractableObject.EvtKindChanged += OnKindUpdated;
         }
 
         private void OnDestroy()
@@ -33,6 +36,7 @@ namespace GameBoard
             RoundManager.EvtRoundFinishFailed -= EvtOnRoundFinished;
             
             _myInteractableObject.EvtMatchFound -= EvtOnMatchFound;
+            _myInteractableObject.EvtKindChanged -= OnKindUpdated;
         }
 
         private void EvtOnRoundStarted()
@@ -62,6 +66,11 @@ namespace GameBoard
             _targetCanvasGroup.alpha = 1;
         }
 
+        private void OnKindUpdated(InteractableObject.Kind kind)
+        {
+            _image.sprite = _myInteractableObject.Config.ObjectList[(int) kind];
+        }
+        
         public void Hide()
         {
             _targetCanvasGroup.alpha = 0;
