@@ -73,6 +73,7 @@ namespace GameFlow
         {
             _highScoreText.text = $"{RoundManager.Instance.HighScore}";
         }
+        
         private void SetCurrentScore()
         {
             _currentPointsText.text = $"{RoundManager.Instance.MatchPoints}";

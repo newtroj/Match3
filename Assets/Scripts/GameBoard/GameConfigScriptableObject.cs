@@ -8,7 +8,6 @@ namespace GameBoard
     {
         [SerializeField] private int _boardWidth;
         [SerializeField] private int _boardHeight;
-        [SerializeField] private int _interactableObjectSize;
         [SerializeField] private int _minimumObjectsForAMatch;
         [SerializeField] private int _roundTime;
         [SerializeField] private int _pointsPerObject;
@@ -20,7 +19,6 @@ namespace GameBoard
 
         public int BoardWidth =>                _boardWidth;
         public int BoardHeight =>               _boardHeight;
-        public int InteractableObjectSize =>    _interactableObjectSize;
         public int MinimumObjectsForAMatch =>   _minimumObjectsForAMatch;
         public int RoundTime =>   _roundTime;
         public int PointsPerObject =>   _pointsPerObject;

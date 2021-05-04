@@ -17,6 +17,9 @@ namespace ObjectManagers
         //TODO fix it
         public bool _matchFound = false;
         
+        public float _verticalSize;
+        public float _horizontalSize;
+        
         private InteractableObject NeighborUp { get; set; }
         private InteractableObject NeighborDown { get; set; }
         private InteractableObject NeighborLeft { get; set; }
@@ -87,6 +90,9 @@ namespace ObjectManagers
         {
             Config = gameConfig;
             
+            _verticalSize = 1f / Config.BoardHeight;
+            _horizontalSize = 1f / Config.BoardWidth;
+            
             VerticalIndex = verticalIndex;
             HorizontalIndex = horizontalIndex;
             
@@ -126,10 +132,14 @@ namespace ObjectManagers
 
         private void SetPosition()
         {
-            //TODO use anchors properly to support different resolutions 
-            _rectTransform.anchoredPosition = new Vector2(
-                Config.InteractableObjectSize*0.5f + (HorizontalIndex * Config.InteractableObjectSize),
-                -Config.InteractableObjectSize*0.5f - (VerticalIndex * Config.InteractableObjectSize));
+            float horizontalMinPosition = _horizontalSize * HorizontalIndex;
+            float horizontalMaxPosition = horizontalMinPosition + _horizontalSize;
+            
+            float verticalMinPosition = _verticalSize * VerticalIndex;
+            float verticalMaxPosition = verticalMinPosition + _verticalSize;
+            
+            _rectTransform.anchorMin = new Vector2(horizontalMinPosition, verticalMinPosition);
+            _rectTransform.anchorMax = new Vector2(horizontalMaxPosition, verticalMaxPosition);
         }
 
         private void OnInteractableDroppedReceived(PointerEventData eventData)

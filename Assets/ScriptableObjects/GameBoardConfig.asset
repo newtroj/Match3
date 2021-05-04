@@ -12,9 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8cc43ac4bb24e23835d19f1efa2f260, type: 3}
   m_Name: GameBoardConfig
   m_EditorClassIdentifier: 
-  _boardWidth: 7
-  _boardHeight: 11
-  _interactableObjectSize: 64
+  _boardWidth: 6
+  _boardHeight: 8
   _minimumObjectsForAMatch: 3
   _roundTime: 120
   _pointsPerObject: 5
