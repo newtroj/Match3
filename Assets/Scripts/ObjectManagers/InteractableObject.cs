@@ -135,11 +135,11 @@ namespace ObjectManagers
             float horizontalMinPosition = _horizontalSize * HorizontalIndex;
             float horizontalMaxPosition = horizontalMinPosition + _horizontalSize;
             
-            float verticalMinPosition = _verticalSize * VerticalIndex;
-            float verticalMaxPosition = verticalMinPosition + _verticalSize;
+            float verticalMinPosition = 1 - (_verticalSize * VerticalIndex);
+            float verticalMaxPosition = verticalMinPosition - _verticalSize;
             
-            _rectTransform.anchorMin = new Vector2(horizontalMinPosition, verticalMinPosition);
-            _rectTransform.anchorMax = new Vector2(horizontalMaxPosition, verticalMaxPosition);
+            _rectTransform.anchorMin = new Vector2(horizontalMinPosition, verticalMaxPosition);
+            _rectTransform.anchorMax = new Vector2(horizontalMaxPosition, verticalMinPosition);
         }
 
         private void OnInteractableDroppedReceived(PointerEventData eventData)
