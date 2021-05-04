@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Utils;
 
-namespace GameBoard
+namespace ObjectManagers
 {
     public class InteractableObjectUIAnimation : MonoBehaviour
     {

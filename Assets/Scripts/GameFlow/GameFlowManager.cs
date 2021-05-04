@@ -8,7 +8,7 @@ namespace GameFlow
     {
         [SerializeField] private GameConfigScriptableObject _config;
 
-        private int _currentRound = 0;
+        private int _currentRound;
         
         public static GameFlowManager Instance;
         

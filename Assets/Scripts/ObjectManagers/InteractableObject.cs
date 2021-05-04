@@ -1,9 +1,10 @@
 ﻿using System;
+using GameBoard;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Random = UnityEngine.Random;
 
-namespace GameBoard
+namespace ObjectManagers
 {
     public class InteractableObject : MonoBehaviour
     {
@@ -46,6 +47,7 @@ namespace GameBoard
         public event Action<InteractableObject> EvtSwapFail;
         public event Action<InteractableObject> EvtNextKindFound;
         public event Action EvtMatchFound;
+        public static event Action EvtAnySwapSuccess;
         public static event Action EvtLastInteractableKindFoundForThisColumn;
         
         public enum Kind
@@ -170,6 +172,7 @@ namespace GameBoard
         {
             DoSwap(interactableObject);
             EvtSwapSuccess?.Invoke(interactableObject);
+            EvtAnySwapSuccess?.Invoke();
         }
 
         private void DoSwap(InteractableObject interactableObject)

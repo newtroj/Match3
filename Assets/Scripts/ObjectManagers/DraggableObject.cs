@@ -2,7 +2,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace GameBoard
+namespace ObjectManagers
 {
     public class DraggableObject : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler, IDropHandler
     {
@@ -12,6 +12,7 @@ namespace GameBoard
 
         public event Action<PointerEventData> EvtOnInteractableDroppedOnMe; //InteractableObject dropped just on me
         public static event Action<PointerEventData> EvtOnAnyInteractableDropped; //for interactableObjects dropped on ANY interactableObject
+        public static event Action EvtOnAnyDragStarted;
         
         private void Awake()
         {
@@ -28,6 +29,7 @@ namespace GameBoard
         public void OnDrag(PointerEventData eventData)
         {
             _targetDraggableRectTransform.anchoredPosition = transform.parent.InverseTransformPoint(eventData.position);
+            EvtOnAnyDragStarted?.Invoke();
         }
 
         public void OnEndDrag(PointerEventData eventData)

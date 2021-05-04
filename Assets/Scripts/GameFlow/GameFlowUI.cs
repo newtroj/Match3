@@ -1,9 +1,9 @@
 ﻿using GameBoard;
-using GameFlow;
+using Round;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Round
+namespace GameFlow
 {
     public class GameFlowUI : MonoBehaviour
     {
